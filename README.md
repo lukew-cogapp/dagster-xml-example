@@ -54,7 +54,7 @@ Requires [uv](https://docs.astral.sh/uv/getting-started/installation/).
 uv sync
 
 # Run the XML pipeline
-uv run python pipeline.py
+uv run python pipeline_xml.py
 
 # Run the JSON pipeline (same transform/validate/output, different harvest)
 uv run python pipeline_json.py
@@ -73,15 +73,15 @@ Each function represents a Dagster asset, with parameters representing upstream
 dependencies that the IO manager would inject.
 
 ```
-pipeline.py (XML)                    pipeline_json.py (JSON)
+pipeline_xml.py (XML)                    pipeline_json.py (JSON)
 ─────────────────                    ───────────────────────
 harvest_terminology (XML parsing)    harvest_terminology (pl.read_json)
 harvest_objects     (XML parsing)    harvest_objects     (pl.read_json)
         │                                    │
         └──────────────┬─────────────────────┘
                        ▼
-              objects_transform        ← shared from pipeline.py
-              check_objects_transform  ← shared from pipeline.py
+              objects_transform        ← shared from pipeline_xml.py
+              check_objects_transform  ← shared from pipeline_xml.py
               objects_output           ← local (different output dir)
 ```
 
@@ -209,7 +209,7 @@ Two objects have intentional data quality issues to demonstrate validation:
 ```
 collectionflow-demo/
 ├── pyproject.toml          # uv project config (polars + pandera)
-├── pipeline.py             # XML pipeline (harvest + shared transform/validate/output)
+├── pipeline_xml.py             # XML pipeline (harvest + shared transform/validate/output)
 ├── pipeline_json.py        # JSON pipeline (harvest only, imports shared code)
 ├── show_parquet.py         # Inspect generated Parquet files from both pipelines
 ├── data/

@@ -22,7 +22,7 @@ from pathlib import Path
 
 import polars as pl
 
-from pipeline import check_objects_transform, objects_transform
+from pipeline_xml import check_objects_transform, objects_transform
 
 PROJECT_DIR = Path(__file__).parent
 DATA_DIR = PROJECT_DIR / "data"

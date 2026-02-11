@@ -16,7 +16,7 @@ Data quality issues planted in the source XML:
     - OBJ-005: dimension value of 0.5 (should be > 1)
 
 Usage:
-    uv run python pipeline.py
+    uv run python pipeline_xml.py
 """
 
 import json
