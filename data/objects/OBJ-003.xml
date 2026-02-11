@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<object id="OBJ-003">
+  <title>Portrait of a Lady</title>
+  <!-- no date_made — data quality issue -->
+  <credit_line>Anonymous gift, 2010</credit_line>
+  <department>European Paintings</department>
+
+  <!-- no constituents — data quality issue -->
+  <constituents/>
+
+  <classifications>
+    <classification type_id="T-001" term_id="T-004"/>
+    <classification type_id="T-008" term_id="T-009"/>
+  </classifications>
+
+  <dimensions>
+    <dimension type="height" value="200.0" unit="cm"/>
+    <dimension type="width" value="120.0" unit="cm"/>
+  </dimensions>
+
+  <media>
+    <image type="primary">
+      <url>https://cdn.example.org/img/OBJ-003_full.jpg</url>
+      <caption>Overall view</caption>
+    </image>
+  </media>
+</object>

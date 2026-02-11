@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<object id="OBJ-005">
+  <title>View of Delft</title>
+  <date_made>1880</date_made>
+  <credit_line>Gift of the Dutch Heritage Foundation, 2015</credit_line>
+  <department>Works on Paper</department>
+
+  <constituents>
+    <constituent role="artist">
+      <name>Hendrik van Meer</name>
+      <birth_year>1845</birth_year>
+      <nationality_id>T-015</nationality_id>
+    </constituent>
+  </constituents>
+
+  <classifications>
+    <classification type_id="T-003" term_id="T-006"/>
+    <classification type_id="T-008" term_id="T-008"/>
+  </classifications>
+
+  <dimensions>
+    <dimension type="height" value="0.5" unit="cm"/>
+    <dimension type="width" value="35.0" unit="cm"/>
+  </dimensions>
+
+  <media>
+    <image type="primary">
+      <url>https://cdn.example.org/img/OBJ-005_full.jpg</url>
+      <caption>Overall view</caption>
+    </image>
+  </media>
+</object>

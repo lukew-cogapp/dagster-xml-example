@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<terminology>
+  <term id="T-001" type="object_type">Painting</term>
+  <term id="T-002" type="object_type">Sculpture</term>
+  <term id="T-003" type="object_type">Print</term>
+  <term id="T-004" type="medium">Oil on canvas</term>
+  <term id="T-005" type="medium">Bronze</term>
+  <term id="T-006" type="medium">Etching on paper</term>
+  <term id="T-007" type="medium">Oil on panel</term>
+  <term id="T-008" type="subject">Landscape</term>
+  <term id="T-009" type="subject">Portrait</term>
+  <term id="T-010" type="subject">Still Life</term>
+  <term id="T-011" type="subject">Seascape</term>
+  <term id="T-012" type="subject">Harbor</term>
+  <term id="T-013" type="subject">Fruit</term>
+  <term id="T-014" type="nationality">French</term>
+  <term id="T-015" type="nationality">Dutch</term>
+  <term id="T-016" type="nationality">Italian</term>
+</terminology>

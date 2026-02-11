@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<object id="OBJ-001">
+  <title>The Harbor at Sunset</title>
+  <date_made>1892</date_made>
+  <credit_line>Gift of the Thornton Family, 2003</credit_line>
+  <department>European Paintings</department>
+
+  <constituents>
+    <constituent role="artist">
+      <name>Marie Duval</name>
+      <birth_year>1856</birth_year>
+      <nationality_id>T-014</nationality_id>
+    </constituent>
+    <constituent role="frame_maker">
+      <name>Atelier Leblanc</name>
+    </constituent>
+  </constituents>
+
+  <classifications>
+    <classification type_id="T-001" term_id="T-004"/>
+    <classification type_id="T-008" term_id="T-008"/>
+    <classification type_id="T-008" term_id="T-011"/>
+    <classification type_id="T-008" term_id="T-012"/>
+  </classifications>
+
+  <dimensions>
+    <dimension type="height" value="98.5" unit="cm"/>
+    <dimension type="width" value="134.2" unit="cm"/>
+  </dimensions>
+
+  <media>
+    <image type="primary">
+      <url>https://cdn.example.org/img/OBJ-001_full.jpg</url>
+      <caption>Overall view, raking light</caption>
+    </image>
+    <image type="detail">
+      <url>https://cdn.example.org/img/OBJ-001_det1.jpg</url>
+      <caption>Detail of harbor boats</caption>
+    </image>
+  </media>
+</object>

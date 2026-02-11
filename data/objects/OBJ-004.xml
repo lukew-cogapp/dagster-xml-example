@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<object id="OBJ-004">
+  <title>Dancing Figure</title>
+  <date_made>1923</date_made>
+  <credit_line>Bequest of Anna Schmidt, 1998</credit_line>
+  <department>Sculpture</department>
+
+  <constituents>
+    <constituent role="artist">
+      <name>Giovanni Bellini</name>
+      <birth_year>1885</birth_year>
+      <nationality_id>T-016</nationality_id>
+    </constituent>
+  </constituents>
+
+  <classifications>
+    <classification type_id="T-002" term_id="T-005"/>
+  </classifications>
+
+  <dimensions>
+    <dimension type="height" value="75.0" unit="cm"/>
+    <dimension type="width" value="30.0" unit="cm"/>
+    <dimension type="depth" value="25.0" unit="cm"/>
+  </dimensions>
+
+  <media>
+    <image type="primary">
+      <url>https://cdn.example.org/img/OBJ-004_full.jpg</url>
+      <caption>Front view</caption>
+    </image>
+    <image type="detail">
+      <url>https://cdn.example.org/img/OBJ-004_det1.jpg</url>
+      <caption>Detail of hands</caption>
+    </image>
+    <image type="detail">
+      <url>https://cdn.example.org/img/OBJ-004_det2.jpg</url>
+      <caption>Rear view</caption>
+    </image>
+  </media>
+</object>

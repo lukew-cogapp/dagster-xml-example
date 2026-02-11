@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<object id="OBJ-002">
+  <title>Still Life with Fruit and Wine</title>
+  <date_made>1905</date_made>
+  <credit_line>Museum purchase, 1967</credit_line>
+  <department>European Paintings</department>
+
+  <constituents>
+    <constituent role="artist">
+      <name>Paul Renard</name>
+      <birth_year>1870</birth_year>
+      <nationality_id>T-014</nationality_id>
+    </constituent>
+  </constituents>
+
+  <classifications>
+    <classification type_id="T-001" term_id="T-007"/>
+    <classification type_id="T-008" term_id="T-010"/>
+    <classification type_id="T-008" term_id="T-013"/>
+  </classifications>
+
+  <dimensions>
+    <dimension type="height" value="45.0" unit="cm"/>
+    <dimension type="width" value="60.0" unit="cm"/>
+  </dimensions>
+
+  <media>
+    <image type="primary">
+      <url>https://cdn.example.org/img/OBJ-002_full.jpg</url>
+      <caption>Overall view</caption>
+    </image>
+  </media>
+</object>
