@@ -133,7 +133,7 @@ def main() -> None:
     print("  Parquet round-trip: schema preserved")
 
     # --- Validate (reuses pipeline.check_objects_transform) ---
-    print("\n--- check_objects_transform (15 Pandera checks) ---")
+    print("\n--- check_objects_transform (schema validation) ---")
     passed, errors = check_objects_transform(transform_df)
     if passed:
         print("  All checks PASSED")

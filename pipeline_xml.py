@@ -25,7 +25,6 @@ from pathlib import Path
 
 import pandera.polars as pa
 import polars as pl
-from pandera.polars import PolarsData
 
 PROJECT_DIR = Path(__file__).parent
 DATA_DIR = PROJECT_DIR / "data"
@@ -169,173 +168,147 @@ def objects_transform(
 # =========================================================================
 
 
-class ObjectTransformSchema(pa.DataFrameModel):
-    """Pandera schema for objects_transform output.
+def _nested_check(field, expr, name):
+    """Helper to build a Check for a nested List(Struct) column."""
+    return pa.Check(
+        lambda data, _expr=expr: data.lazyframe.select(
+            _expr(pl.col(data.key)).alias(data.key)
+        ),
+        name=name,
+    )
 
-    Validates at multiple levels without flattening:
-    - Flat column checks via pa.Field (unique, range, nullable)
-    - Nested list/struct checks via @pa.dataframe_check + list.eval()
-    - Cross-column checks comparing fields across columns
 
-    All nested checks use @pa.dataframe_check (not @pa.check) because
-    Pandera's failure_cases formatting crashes on List(Struct) columns
-    with lazy=True. See README for full Pandera nested data limitations.
-    """
-
-    object_id: str = pa.Field(unique=True)
-    title: str = pa.Field(str_length={"min_value": 1})
-    date_made: int = pa.Field(nullable=True, ge=0, le=2100)
-    credit_line: str
-    department: str
-    dimensions: list
-    media: list
-    classifications: list
-    constituents: list
-
-    # --- Basic nested list checks ---
-
-    @pa.dataframe_check(name="has_at_least_one_constituent")
-    @classmethod
-    def has_constituents(cls, data: PolarsData) -> pl.LazyFrame:
-        return data.lazyframe.select(pl.col("constituents").list.len().gt(0))
-
-    @pa.dataframe_check(name="has_at_least_one_image")
-    @classmethod
-    def has_media(cls, data: PolarsData) -> pl.LazyFrame:
-        return data.lazyframe.select(pl.col("media").list.len().gt(0))
-
-    # --- Nested struct field value checks ---
-
-    @pa.dataframe_check(name="all_dimension_values_gt_1")
-    @classmethod
-    def dimension_values_positive(cls, data: PolarsData) -> pl.LazyFrame:
-        """Every dimension measurement must be > 1."""
-        return data.lazyframe.select(
-            pl.col("dimensions")
-            .list.eval(pl.element().struct.field("value"))
-            .list.min()
-            .gt(1)
-        )
-
-    @pa.dataframe_check(name="has_height_dimension")
-    @classmethod
-    def has_height(cls, data: PolarsData) -> pl.LazyFrame:
-        """Every object must have a height dimension."""
-        return data.lazyframe.select(
-            pl.col("dimensions")
-            .list.eval(pl.element().struct.field("type") == "height")
-            .list.any()
-        )
-
-    @pa.dataframe_check(name="all_units_are_cm")
-    @classmethod
-    def units_consistent(cls, data: PolarsData) -> pl.LazyFrame:
-        """All dimensions must use the same unit (cm)."""
-        return data.lazyframe.select(
-            pl.col("dimensions")
-            .list.eval(pl.element().struct.field("unit") == "cm")
-            .list.all()
-        )
-
-    # --- String pattern checks inside nested structs ---
-
-    @pa.dataframe_check(name="all_urls_are_https")
-    @classmethod
-    def urls_are_https(cls, data: PolarsData) -> pl.LazyFrame:
-        """All media URLs must use HTTPS."""
-        return data.lazyframe.select(
-            pl.col("media")
-            .list.eval(pl.element().struct.field("url").str.starts_with("https://"))
-            .list.all()
-        )
-
-    @pa.dataframe_check(name="has_primary_image")
-    @classmethod
-    def has_primary_image(cls, data: PolarsData) -> pl.LazyFrame:
-        """Every object must have exactly one primary image."""
-        return data.lazyframe.select(
-            pl.col("media")
-            .list.eval(pl.element().struct.field("type") == "primary")
-            .list.sum()
-            .eq(1)
-        )
-
-    @pa.dataframe_check(name="no_empty_constituent_names")
-    @classmethod
-    def constituent_names_not_empty(cls, data: PolarsData) -> pl.LazyFrame:
-        """Constituent names must not be empty strings."""
-        lf = data.lazyframe
-        has_items = pl.col("constituents").list.len().gt(0)
-        names_ok = (
-            pl.col("constituents")
-            .list.eval(pl.element().struct.field("name").str.len_chars() > 0)
-            .list.all()
-        )
-        return lf.select(~has_items | names_ok)
-
-    @pa.dataframe_check(name="has_at_least_one_artist")
-    @classmethod
-    def has_artist(cls, data: PolarsData) -> pl.LazyFrame:
-        """If an object has constituents, at least one must have role 'artist'."""
-        lf = data.lazyframe
-        has_items = pl.col("constituents").list.len().gt(0)
-        has_artist_role = (
-            pl.col("constituents")
-            .list.eval(pl.element().struct.field("role") == "artist")
-            .list.any()
-        )
-        return lf.select(~has_items | has_artist_role)
-
-    @pa.dataframe_check(name="no_null_labels_in_classifications")
-    @classmethod
-    def classification_labels_resolved(cls, data: PolarsData) -> pl.LazyFrame:
-        """All classification labels must be resolved (no nulls from failed joins)."""
-        lf = data.lazyframe
-        has_items = pl.col("classifications").list.len().gt(0)
-        no_nulls = (
-            pl.col("classifications")
-            .list.eval(pl.element().struct.field("term_label").is_not_null())
-            .list.all()
-        )
-        return lf.select(~has_items | no_nulls)
-
-    # --- Cross-column checks ---
-
-    @pa.dataframe_check(name="sculpture_must_have_depth")
-    @classmethod
-    def sculpture_has_depth(cls, data: PolarsData) -> pl.LazyFrame:
-        """Objects in the Sculpture department must have a depth dimension."""
-        lf = data.lazyframe
-        is_sculpture = pl.col("department") == "Sculpture"
-        has_depth = (
-            pl.col("dimensions")
-            .list.eval(pl.element().struct.field("type") == "depth")
-            .list.any()
-        )
-        return lf.select(~is_sculpture | has_depth)
-
-    @pa.dataframe_check(name="constituent_born_before_artwork")
-    @classmethod
-    def birth_before_creation(cls, data: PolarsData) -> pl.LazyFrame:
-        """Constituent birth years must be before the artwork's date_made."""
-        lf = data.lazyframe
-        both_known = pl.col("date_made").is_not_null() & (
-            pl.col("constituents")
-            .list.eval(pl.element().struct.field("birth_year"))
-            .list.max()
-            .is_not_null()
-        )
-        valid_where_known = (
-            pl.col("constituents")
-            .list.eval(pl.element().struct.field("birth_year"))
-            .list.max()
-            .lt(pl.col("date_made"))
-        )
-        return lf.select(~both_known | valid_where_known)
-
-    class Config:
-        coerce = True
-        strict = False
+object_transform_schema = pa.DataFrameSchema(
+    {
+        "object_id": pa.Column(pl.String, unique=True),
+        "title": pa.Column(pl.String, pa.Check.str_length(min_value=1)),
+        "date_made": pa.Column(pl.Int64, nullable=True),
+        "credit_line": pa.Column(pl.String),
+        "department": pa.Column(pl.String),
+        "dimensions": pa.Column(
+            pl.List(
+                pl.Struct(
+                    {
+                        "type": pl.String,
+                        "value": pl.Float64,
+                        "unit": pl.String,
+                    }
+                )
+            ),
+            checks=[
+                _nested_check(
+                    "dimensions",
+                    lambda c: (
+                        c.list.eval(pl.element().struct.field("value")).list.min().gt(1)
+                    ),
+                    "all_dimension_values_gt_1",
+                ),
+                _nested_check(
+                    "dimensions",
+                    lambda c: c.list.eval(
+                        pl.element().struct.field("type") == "height"
+                    ).list.any(),
+                    "has_height_dimension",
+                ),
+                _nested_check(
+                    "dimensions",
+                    lambda c: c.list.eval(
+                        pl.element().struct.field("unit") == "cm"
+                    ).list.all(),
+                    "all_units_are_cm",
+                ),
+            ],
+        ),
+        "media": pa.Column(
+            pl.List(
+                pl.Struct(
+                    {
+                        "type": pl.String,
+                        "url": pl.String,
+                        "caption": pl.String,
+                    }
+                )
+            ),
+            checks=[
+                _nested_check(
+                    "media",
+                    lambda c: c.list.eval(
+                        pl.element().struct.field("url").str.starts_with("https://")
+                    ).list.all(),
+                    "all_urls_are_https",
+                ),
+                _nested_check(
+                    "media",
+                    lambda c: (
+                        c.list.eval(pl.element().struct.field("type") == "primary")
+                        .list.sum()
+                        .eq(1)
+                    ),
+                    "has_primary_image",
+                ),
+                _nested_check(
+                    "media",
+                    lambda c: c.list.len().gt(0),
+                    "has_at_least_one_image",
+                ),
+            ],
+        ),
+        "classifications": pa.Column(
+            pl.List(
+                pl.Struct(
+                    {
+                        "type_label": pl.String,
+                        "term_label": pl.String,
+                    }
+                )
+            ),
+            checks=[
+                _nested_check(
+                    "classifications",
+                    lambda c: c.list.eval(
+                        pl.element().struct.field("term_label").is_not_null()
+                    ).list.all(),
+                    "no_null_labels_in_classifications",
+                ),
+            ],
+        ),
+        "constituents": pa.Column(
+            pl.List(
+                pl.Struct(
+                    {
+                        "name": pl.String,
+                        "role": pl.String,
+                        "birth_year": pl.Int64,
+                        "nationality": pl.String,
+                    }
+                )
+            ),
+            checks=[
+                _nested_check(
+                    "constituents",
+                    lambda c: c.list.len().gt(0),
+                    "has_at_least_one_constituent",
+                ),
+                _nested_check(
+                    "constituents",
+                    lambda c: c.list.eval(
+                        pl.element().struct.field("name").str.len_chars() > 0
+                    ).list.all(),
+                    "no_empty_constituent_names",
+                ),
+                _nested_check(
+                    "constituents",
+                    lambda c: c.list.eval(
+                        pl.element().struct.field("role") == "artist"
+                    ).list.any(),
+                    "has_at_least_one_artist",
+                ),
+            ],
+        ),
+    },
+    coerce=True,
+    strict=False,
+)
 
 
 def check_objects_transform(
@@ -345,20 +318,15 @@ def check_objects_transform(
 
     Validate transform output with Pandera. Blocks objects_output if failed.
     """
-    try:
-        ObjectTransformSchema.validate(objects_transform, lazy=True)
-        return True, []
-    except pa.errors.SchemaErrors as e:
-        errors = []
-        for row in e.failure_cases.to_dicts():
-            errors.append(
-                {
-                    "column": row.get("column"),
-                    "check": row.get("check"),
-                    "failure_case": str(row.get("failure_case", ""))[:80],
-                }
+    errors = []
+    for col_name, column in object_transform_schema.columns.items():
+        try:
+            pa.DataFrameSchema({col_name: column}).validate(
+                objects_transform, lazy=False
             )
-        return False, errors
+        except pa.errors.SchemaError as e:
+            errors.append({"column": col_name, "check": str(e.check)})
+    return (True, []) if not errors else (False, errors)
 
 
 # =========================================================================
@@ -507,7 +475,7 @@ def main() -> None:
     print("  Parquet round-trip: schema preserved")
 
     # --- Validate ---
-    print("\n--- check_objects_transform (15 Pandera checks) ---")
+    print("\n--- check_objects_transform (schema validation) ---")
     passed, errors = check_objects_transform(transform_df)
     if passed:
         print("  All checks PASSED")
