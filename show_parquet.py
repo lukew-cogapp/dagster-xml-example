@@ -30,7 +30,7 @@ def main() -> None:
 
         df = pl.read_parquet(path)
         print(f"  Shape: {df.shape[0]} rows x {df.shape[1]} columns")
-        print(f"  Schema:")
+        print("  Schema:")
         for name, dtype in df.schema.items():
             print(f"    {name}: {dtype}")
         print()

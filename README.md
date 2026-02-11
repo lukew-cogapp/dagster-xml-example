@@ -1,6 +1,6 @@
-# CollectionFlow Pattern Demo
+# Dagster XML Example
 
-Demonstrates the CollectionFlow ETL pattern for museum/collection data:
+Demonstrates a Dagster ETL pattern for museum/collection data:
 **nested XML source data** through **Polars DataFrames with native nested types**
 to **nested JSON for Elasticsearch**.
 
@@ -175,7 +175,7 @@ Two objects have intentional data quality issues to demonstrate validation:
 ## Project Structure
 
 ```
-collectionflow-demo/
+dagster-xml-example/
 ├── pyproject.toml          # uv project config (polars + pandera)
 ├── pipeline.py             # Simulated Dagster asset graph
 ├── show_parquet.py         # Inspect generated Parquet files

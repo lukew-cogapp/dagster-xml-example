@@ -9,5 +9,12 @@ wheels/
 # Virtual environments
 .venv
 
+# macOS
+.DS_Store
+
+# Ruff / ty
+.ruff_cache/
+.ty/
+
 # Pipeline output
 output/

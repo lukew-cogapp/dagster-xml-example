@@ -1,4 +1,4 @@
-"""CollectionFlow pattern demo — simulated Dagster asset graph.
+"""Dagster XML example — simulated Dagster asset graph.
 
 Each top-level function represents a Dagster asset. Parameters simulate
 upstream dependencies (what the IO manager would inject). Returns simulate
@@ -62,8 +62,7 @@ def harvest_objects() -> pl.DataFrame:
     Harvest stays close to source: term_ids are NOT resolved here.
     """
     records = [
-        _parse_object_xml(p)
-        for p in sorted((DATA_DIR / "objects").glob("*.xml"))
+        _parse_object_xml(p) for p in sorted((DATA_DIR / "objects").glob("*.xml"))
     ]
     return pl.DataFrame(records)
 
@@ -108,8 +107,7 @@ def objects_transform(
     )
 
     classifications_nested = (
-        classifications_flat
-        .join(type_labels, on="type_id", how="left")
+        classifications_flat.join(type_labels, on="type_id", how="left")
         .join(term_labels, on="term_id", how="left")
         .select("object_id", "type_label", "term_label")
         .group_by("object_id")
@@ -132,18 +130,24 @@ def objects_transform(
     )
 
     constituents_nested = (
-        constituents_flat
-        .join(nationality_lookup, on="nationality_id", how="left")
+        constituents_flat.join(nationality_lookup, on="nationality_id", how="left")
         .select("object_id", "name", "role", "birth_year", "nationality")
         .group_by("object_id")
-        .agg(pl.struct("name", "role", "birth_year", "nationality").alias("constituents"))
+        .agg(
+            pl.struct("name", "role", "birth_year", "nationality").alias("constituents")
+        )
     )
 
     # --- Assemble: flat fields + pass-through nested + enriched nested ---
     enriched = (
         objects.select(
-            "object_id", "title", "date_made", "credit_line", "department",
-            "dimensions", "media",
+            "object_id",
+            "title",
+            "date_made",
+            "credit_line",
+            "department",
+            "dimensions",
+            "media",
         )
         .join(classifications_nested, on="object_id", how="left")
         .join(constituents_nested, on="object_id", how="left")
@@ -153,7 +157,9 @@ def objects_transform(
         )
     )
 
-    return enriched.collect(engine="streaming")
+    result = enriched.collect(engine="streaming")
+    assert isinstance(result, pl.DataFrame)
+    return result
 
 
 # =========================================================================
@@ -206,17 +212,13 @@ class ObjectTransformSchema(pa.DataFrameModel):
     @classmethod
     def has_height(cls, col: pl.Series) -> pl.Series:
         """Every object must have a height dimension."""
-        return col.list.eval(
-            pl.element().struct.field("type") == "height"
-        ).list.any()
+        return col.list.eval(pl.element().struct.field("type") == "height").list.any()
 
     @pa.check("dimensions", name="all_units_are_cm")
     @classmethod
     def units_consistent(cls, col: pl.Series) -> pl.Series:
         """All dimensions must use the same unit (cm)."""
-        return col.list.eval(
-            pl.element().struct.field("unit") == "cm"
-        ).list.all()
+        return col.list.eval(pl.element().struct.field("unit") == "cm").list.all()
 
     # --- String pattern checks inside nested structs ---
 
@@ -232,9 +234,10 @@ class ObjectTransformSchema(pa.DataFrameModel):
     @classmethod
     def has_primary_image(cls, col: pl.Series) -> pl.Series:
         """Every object must have exactly one primary image."""
-        return col.list.eval(
-            pl.element().struct.field("type") == "primary"
-        ).list.sum() == 1
+        return (
+            col.list.eval(pl.element().struct.field("type") == "primary").list.sum()
+            == 1
+        )
 
     @pa.check("constituents", name="no_empty_constituent_names")
     @classmethod
@@ -273,9 +276,11 @@ class ObjectTransformSchema(pa.DataFrameModel):
     def sculpture_has_depth(cls, df: pl.DataFrame) -> pl.Series:
         """Objects in the Sculpture department must have a depth dimension."""
         is_sculpture = df["department"] == "Sculpture"
-        has_depth = df["dimensions"].list.eval(
-            pl.element().struct.field("type") == "depth"
-        ).list.any()
+        has_depth = (
+            df["dimensions"]
+            .list.eval(pl.element().struct.field("type") == "depth")
+            .list.any()
+        )
         return ~is_sculpture | has_depth
 
     @pa.dataframe_check(name="constituent_born_before_artwork")
@@ -283,9 +288,11 @@ class ObjectTransformSchema(pa.DataFrameModel):
     def birth_before_creation(cls, df: pl.DataFrame) -> pl.Series:
         """Constituent birth years must be before the artwork's date_made."""
         date_made = df["date_made"]
-        max_birth = df["constituents"].list.eval(
-            pl.element().struct.field("birth_year")
-        ).list.max()
+        max_birth = (
+            df["constituents"]
+            .list.eval(pl.element().struct.field("birth_year"))
+            .list.max()
+        )
         both_known = date_made.is_not_null() & max_birth.is_not_null()
         valid_where_known = max_birth < date_made
         return ~both_known | valid_where_known
@@ -411,7 +418,7 @@ def _int_or_none(el: ET.Element, tag: str) -> int | None:
 
 def main() -> None:
     print("=" * 70)
-    print("COLLECTIONFLOW PATTERN DEMO")
+    print("DAGSTER XML EXAMPLE")
     print("Simulated Dagster asset graph: XML → Polars → Parquet → JSON")
     print("=" * 70)
 
@@ -422,8 +429,12 @@ def main() -> None:
 
     print("\n--- harvest_objects ---")
     objects_df = harvest_objects()
-    print(f"  {len(objects_df)} objects from {len(list((DATA_DIR / 'objects').glob('*.xml')))} XML files")
-    print(f"  Nested columns: {[n for n, t in objects_df.schema.items() if 'List' in str(t)]}")
+    print(
+        f"  {len(objects_df)} objects from {len(list((DATA_DIR / 'objects').glob('*.xml')))} XML files"
+    )
+    print(
+        f"  Nested columns: {[n for n, t in objects_df.schema.items() if 'List' in str(t)]}"
+    )
 
     # Simulate IO manager
     harvest_dir = OUTPUT_DIR / "harvest"
@@ -446,9 +457,7 @@ def main() -> None:
     print(f"  OBJ-001 classifications: {classifications['term_label'].to_list()}")
 
     constituents = (
-        row.select("constituents")
-        .explode("constituents")
-        .unnest("constituents")
+        row.select("constituents").explode("constituents").unnest("constituents")
     )
     print(f"  OBJ-001 constituents: {constituents['name'].to_list()}")
 
@@ -491,7 +500,8 @@ def main() -> None:
         bad_dimensions = transform_df.filter(
             pl.col("dimensions")
             .list.eval(pl.element().struct.field("value"))
-            .list.min() <= 1
+            .list.min()
+            <= 1
         )
         if len(bad_dimensions) > 0:
             for row_dict in bad_dimensions.to_dicts():
@@ -508,10 +518,10 @@ def main() -> None:
 
     # Show one complete record
     sample = transform_df.filter(pl.col("object_id") == "OBJ-004").to_dicts()[0]
-    print(f"\n  Sample ES document (OBJ-004):")
+    print("\n  Sample ES document (OBJ-004):")
     print(json.dumps(sample, indent=2, default=str))
 
-    print(f"\n  Output files:")
+    print("\n  Output files:")
     print(f"    {harvest_dir}/terminology.parquet")
     print(f"    {harvest_dir}/objects.parquet")
     print(f"    {transform_dir}/objects_enriched.parquet")
