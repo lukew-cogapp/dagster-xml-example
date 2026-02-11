@@ -10,9 +10,14 @@ from pathlib import Path
 OUTPUT_DIR = Path(__file__).parent / "output"
 
 PARQUET_FILES = [
-    ("harvest/terminology.parquet", "Harvest: Terminology (flat lookup)"),
-    ("harvest/objects.parquet", "Harvest: Objects (native nested types)"),
-    ("transform/objects_enriched.parquet", "Transform: Enriched objects"),
+    # XML pipeline
+    ("xml/harvest/terminology.parquet", "XML Harvest: Terminology (flat lookup)"),
+    ("xml/harvest/objects.parquet", "XML Harvest: Objects (native nested types)"),
+    ("xml/transform/objects_enriched.parquet", "XML Transform: Enriched objects"),
+    # JSON pipeline
+    ("json/harvest/terminology.parquet", "JSON Harvest: Terminology (flat lookup)"),
+    ("json/harvest/objects.parquet", "JSON Harvest: Objects (native nested types)"),
+    ("json/transform/objects_enriched.parquet", "JSON Transform: Enriched objects"),
 ]
 
 

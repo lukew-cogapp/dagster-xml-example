@@ -1,0 +1,18 @@
+[
+  {"term_id": "T-001", "term_type": "object_type", "label": "Painting"},
+  {"term_id": "T-002", "term_type": "object_type", "label": "Sculpture"},
+  {"term_id": "T-003", "term_type": "object_type", "label": "Print"},
+  {"term_id": "T-004", "term_type": "medium", "label": "Oil on canvas"},
+  {"term_id": "T-005", "term_type": "medium", "label": "Bronze"},
+  {"term_id": "T-006", "term_type": "medium", "label": "Etching on paper"},
+  {"term_id": "T-007", "term_type": "medium", "label": "Oil on panel"},
+  {"term_id": "T-008", "term_type": "subject", "label": "Landscape"},
+  {"term_id": "T-009", "term_type": "subject", "label": "Portrait"},
+  {"term_id": "T-010", "term_type": "subject", "label": "Still Life"},
+  {"term_id": "T-011", "term_type": "subject", "label": "Seascape"},
+  {"term_id": "T-012", "term_type": "subject", "label": "Harbor"},
+  {"term_id": "T-013", "term_type": "subject", "label": "Fruit"},
+  {"term_id": "T-014", "term_type": "nationality", "label": "French"},
+  {"term_id": "T-015", "term_type": "nationality", "label": "Dutch"},
+  {"term_id": "T-016", "term_type": "nationality", "label": "Italian"}
+]

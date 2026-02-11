@@ -1,0 +1,112 @@
+[
+  {
+    "object_id": "OBJ-001",
+    "title": "The Harbor at Sunset",
+    "date_made": 1892,
+    "credit_line": "Gift of the Thornton Family, 2003",
+    "department": "European Paintings",
+    "constituents": [
+      {"name": "Marie Duval", "role": "artist", "birth_year": 1856, "nationality_id": "T-014"},
+      {"name": "Atelier Leblanc", "role": "frame_maker", "birth_year": null, "nationality_id": null}
+    ],
+    "classification_ids": [
+      {"type_id": "T-001", "term_id": "T-004"},
+      {"type_id": "T-008", "term_id": "T-008"},
+      {"type_id": "T-008", "term_id": "T-011"},
+      {"type_id": "T-008", "term_id": "T-012"}
+    ],
+    "dimensions": [
+      {"type": "height", "value": 98.5, "unit": "cm"},
+      {"type": "width", "value": 134.2, "unit": "cm"}
+    ],
+    "media": [
+      {"type": "primary", "url": "https://cdn.example.org/img/OBJ-001_full.jpg", "caption": "Overall view, raking light"},
+      {"type": "detail", "url": "https://cdn.example.org/img/OBJ-001_det1.jpg", "caption": "Detail of harbor boats"}
+    ]
+  },
+  {
+    "object_id": "OBJ-002",
+    "title": "Still Life with Fruit and Wine",
+    "date_made": 1905,
+    "credit_line": "Museum purchase, 1967",
+    "department": "European Paintings",
+    "constituents": [
+      {"name": "Paul Renard", "role": "artist", "birth_year": 1870, "nationality_id": "T-014"}
+    ],
+    "classification_ids": [
+      {"type_id": "T-001", "term_id": "T-007"},
+      {"type_id": "T-008", "term_id": "T-010"},
+      {"type_id": "T-008", "term_id": "T-013"}
+    ],
+    "dimensions": [
+      {"type": "height", "value": 45.0, "unit": "cm"},
+      {"type": "width", "value": 60.0, "unit": "cm"}
+    ],
+    "media": [
+      {"type": "primary", "url": "https://cdn.example.org/img/OBJ-002_full.jpg", "caption": "Overall view"}
+    ]
+  },
+  {
+    "object_id": "OBJ-003",
+    "title": "Portrait of a Lady",
+    "date_made": null,
+    "credit_line": "Anonymous gift, 2010",
+    "department": "European Paintings",
+    "constituents": [],
+    "classification_ids": [
+      {"type_id": "T-001", "term_id": "T-004"},
+      {"type_id": "T-008", "term_id": "T-009"}
+    ],
+    "dimensions": [
+      {"type": "height", "value": 200.0, "unit": "cm"},
+      {"type": "width", "value": 120.0, "unit": "cm"}
+    ],
+    "media": [
+      {"type": "primary", "url": "https://cdn.example.org/img/OBJ-003_full.jpg", "caption": "Overall view"}
+    ]
+  },
+  {
+    "object_id": "OBJ-004",
+    "title": "Dancing Figure",
+    "date_made": 1923,
+    "credit_line": "Bequest of Anna Schmidt, 1998",
+    "department": "Sculpture",
+    "constituents": [
+      {"name": "Giovanni Bellini", "role": "artist", "birth_year": 1885, "nationality_id": "T-016"}
+    ],
+    "classification_ids": [
+      {"type_id": "T-002", "term_id": "T-005"}
+    ],
+    "dimensions": [
+      {"type": "height", "value": 75.0, "unit": "cm"},
+      {"type": "width", "value": 30.0, "unit": "cm"},
+      {"type": "depth", "value": 25.0, "unit": "cm"}
+    ],
+    "media": [
+      {"type": "primary", "url": "https://cdn.example.org/img/OBJ-004_full.jpg", "caption": "Front view"},
+      {"type": "detail", "url": "https://cdn.example.org/img/OBJ-004_det1.jpg", "caption": "Detail of hands"},
+      {"type": "detail", "url": "https://cdn.example.org/img/OBJ-004_det2.jpg", "caption": "Rear view"}
+    ]
+  },
+  {
+    "object_id": "OBJ-005",
+    "title": "View of Delft",
+    "date_made": 1880,
+    "credit_line": "Gift of the Dutch Heritage Foundation, 2015",
+    "department": "Works on Paper",
+    "constituents": [
+      {"name": "Hendrik van Meer", "role": "artist", "birth_year": 1845, "nationality_id": "T-015"}
+    ],
+    "classification_ids": [
+      {"type_id": "T-003", "term_id": "T-006"},
+      {"type_id": "T-008", "term_id": "T-008"}
+    ],
+    "dimensions": [
+      {"type": "height", "value": 0.5, "unit": "cm"},
+      {"type": "width", "value": 35.0, "unit": "cm"}
+    ],
+    "media": [
+      {"type": "primary", "url": "https://cdn.example.org/img/OBJ-005_full.jpg", "caption": "Overall view"}
+    ]
+  }
+]

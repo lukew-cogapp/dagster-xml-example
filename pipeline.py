@@ -41,7 +41,7 @@ def harvest_terminology() -> pl.DataFrame:
 
     Parse terminology.xml into a flat lookup DataFrame.
     """
-    tree = ET.parse(DATA_DIR / "terminology.xml")
+    tree = ET.parse(DATA_DIR / "xml" / "terminology.xml")
     rows = []
     for term in tree.findall(".//term"):
         rows.append(
@@ -62,7 +62,8 @@ def harvest_objects() -> pl.DataFrame:
     Harvest stays close to source: term_ids are NOT resolved here.
     """
     records = [
-        _parse_object_xml(p) for p in sorted((DATA_DIR / "objects").glob("*.xml"))
+        _parse_object_xml(p)
+        for p in sorted((DATA_DIR / "xml" / "objects").glob("*.xml"))
     ]
     return pl.DataFrame(records)
 
@@ -337,7 +338,7 @@ def objects_output(
 
     Write enriched objects as nested JSON for Elasticsearch bulk indexing.
     """
-    output_path = OUTPUT_DIR / "objects.json"
+    output_path = OUTPUT_DIR / "xml" / "objects.json"
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     records = objects_transform.to_dicts()
@@ -430,14 +431,14 @@ def main() -> None:
     print("\n--- harvest_objects ---")
     objects_df = harvest_objects()
     print(
-        f"  {len(objects_df)} objects from {len(list((DATA_DIR / 'objects').glob('*.xml')))} XML files"
+        f"  {len(objects_df)} objects from {len(list((DATA_DIR / 'xml' / 'objects').glob('*.xml')))} XML files"
     )
     print(
         f"  Nested columns: {[n for n, t in objects_df.schema.items() if 'List' in str(t)]}"
     )
 
     # Simulate IO manager
-    harvest_dir = OUTPUT_DIR / "harvest"
+    harvest_dir = OUTPUT_DIR / "xml" / "harvest"
     harvest_dir.mkdir(parents=True, exist_ok=True)
     terminology_df.write_parquet(harvest_dir / "terminology.parquet")
     objects_df.write_parquet(harvest_dir / "objects.parquet")
@@ -461,7 +462,7 @@ def main() -> None:
     )
     print(f"  OBJ-001 constituents: {constituents['name'].to_list()}")
 
-    transform_dir = OUTPUT_DIR / "transform"
+    transform_dir = OUTPUT_DIR / "xml" / "transform"
     transform_dir.mkdir(parents=True, exist_ok=True)
     transform_df.write_parquet(transform_dir / "objects_enriched.parquet")
 
