@@ -25,6 +25,9 @@ from pathlib import Path
 
 import pandera.polars as pa
 import polars as pl
+import xmltodict
+
+from schema import object_transform_schema
 
 PROJECT_DIR = Path(__file__).parent
 DATA_DIR = PROJECT_DIR / "data"
@@ -41,17 +44,15 @@ def harvest_terminology() -> pl.DataFrame:
 
     Parse terminology.xml into a flat lookup DataFrame.
     """
-    tree = ET.parse(DATA_DIR / "xml" / "terminology.xml")
-    rows = []
-    for term in tree.findall(".//term"):
-        rows.append(
-            {
-                "term_id": term.get("id"),
-                "term_type": term.get("type"),
-                "label": term.text.strip() if term.text else None,
-            }
-        )
-    return pl.DataFrame(rows)
+    term_path = DATA_DIR / "xml" / "terminology.xml"
+    _validate_xml([term_path])
+
+    with open(term_path) as f:
+        raw = _clean_xmltodict(xmltodict.parse(f.read(), force_list=("term",)))
+
+    return pl.DataFrame(raw["terminology"]["term"]).rename(
+        {"id": "term_id", "type": "term_type", "text": "label"}
+    )
 
 
 def harvest_objects() -> pl.DataFrame:
@@ -61,10 +62,29 @@ def harvest_objects() -> pl.DataFrame:
     Nested XML elements become List(Struct(...)) columns — no flattening.
     Harvest stays close to source: term_ids are NOT resolved here.
     """
-    records = [
-        _parse_object_xml(p)
-        for p in sorted((DATA_DIR / "xml" / "objects").glob("*.xml"))
-    ]
+    xml_dir = DATA_DIR / "xml" / "objects"
+    paths = sorted(xml_dir.glob("*.xml"))
+    _validate_xml(paths)
+
+    records = []
+    for p in paths:
+        with open(p) as f:
+            obj = _clean_xmltodict(
+                xmltodict.parse(
+                    f.read(),
+                    force_list=("constituent", "classification", "dimension", "image"),
+                )
+            )["object"]
+
+        obj["object_id"] = obj.pop("id")
+        obj["constituents"] = _unwrap_list(obj.pop("constituents", None), "constituent")
+        obj["classification_ids"] = _unwrap_list(
+            obj.pop("classifications", None), "classification"
+        )
+        obj["dimensions"] = _unwrap_list(obj.pop("dimensions", None), "dimension")
+        obj["media"] = _unwrap_list(obj.pop("media", None), "image")
+        records.append(obj)
+
     return pl.DataFrame(records)
 
 
@@ -168,149 +188,6 @@ def objects_transform(
 # =========================================================================
 
 
-def _nested_check(field, expr, name):
-    """Helper to build a Check for a nested List(Struct) column."""
-    return pa.Check(
-        lambda data, _expr=expr: data.lazyframe.select(
-            _expr(pl.col(data.key)).alias(data.key)
-        ),
-        name=name,
-    )
-
-
-object_transform_schema = pa.DataFrameSchema(
-    {
-        "object_id": pa.Column(pl.String, unique=True),
-        "title": pa.Column(pl.String, pa.Check.str_length(min_value=1)),
-        "date_made": pa.Column(pl.Int64, nullable=True),
-        "credit_line": pa.Column(pl.String),
-        "department": pa.Column(pl.String),
-        "dimensions": pa.Column(
-            pl.List(
-                pl.Struct(
-                    {
-                        "type": pl.String,
-                        "value": pl.Float64,
-                        "unit": pl.String,
-                    }
-                )
-            ),
-            checks=[
-                _nested_check(
-                    "dimensions",
-                    lambda c: (
-                        c.list.eval(pl.element().struct.field("value")).list.min().gt(1)
-                    ),
-                    "all_dimension_values_gt_1",
-                ),
-                _nested_check(
-                    "dimensions",
-                    lambda c: c.list.eval(
-                        pl.element().struct.field("type") == "height"
-                    ).list.any(),
-                    "has_height_dimension",
-                ),
-                _nested_check(
-                    "dimensions",
-                    lambda c: c.list.eval(
-                        pl.element().struct.field("unit") == "cm"
-                    ).list.all(),
-                    "all_units_are_cm",
-                ),
-            ],
-        ),
-        "media": pa.Column(
-            pl.List(
-                pl.Struct(
-                    {
-                        "type": pl.String,
-                        "url": pl.String,
-                        "caption": pl.String,
-                    }
-                )
-            ),
-            checks=[
-                _nested_check(
-                    "media",
-                    lambda c: c.list.eval(
-                        pl.element().struct.field("url").str.starts_with("https://")
-                    ).list.all(),
-                    "all_urls_are_https",
-                ),
-                _nested_check(
-                    "media",
-                    lambda c: (
-                        c.list.eval(pl.element().struct.field("type") == "primary")
-                        .list.sum()
-                        .eq(1)
-                    ),
-                    "has_primary_image",
-                ),
-                _nested_check(
-                    "media",
-                    lambda c: c.list.len().gt(0),
-                    "has_at_least_one_image",
-                ),
-            ],
-        ),
-        "classifications": pa.Column(
-            pl.List(
-                pl.Struct(
-                    {
-                        "type_label": pl.String,
-                        "term_label": pl.String,
-                    }
-                )
-            ),
-            checks=[
-                _nested_check(
-                    "classifications",
-                    lambda c: c.list.eval(
-                        pl.element().struct.field("term_label").is_not_null()
-                    ).list.all(),
-                    "no_null_labels_in_classifications",
-                ),
-            ],
-        ),
-        "constituents": pa.Column(
-            pl.List(
-                pl.Struct(
-                    {
-                        "name": pl.String,
-                        "role": pl.String,
-                        "birth_year": pl.Int64,
-                        "nationality": pl.String,
-                    }
-                )
-            ),
-            checks=[
-                _nested_check(
-                    "constituents",
-                    lambda c: c.list.len().gt(0),
-                    "has_at_least_one_constituent",
-                ),
-                _nested_check(
-                    "constituents",
-                    lambda c: c.list.eval(
-                        pl.element().struct.field("name").str.len_chars() > 0
-                    ).list.all(),
-                    "no_empty_constituent_names",
-                ),
-                _nested_check(
-                    "constituents",
-                    lambda c: c.list.eval(
-                        pl.element().struct.field("role") == "artist"
-                    ).list.any(),
-                    "has_at_least_one_artist",
-                ),
-            ],
-        ),
-    },
-    coerce=True,
-    strict=False,
-)
-
-
 def check_objects_transform(
     objects_transform: pl.DataFrame,
 ) -> tuple[bool, list[dict]]:
@@ -352,67 +229,49 @@ def objects_output(
 
 
 # =========================================================================
-# XML PARSING HELPERS (would live in a shared module / harvester library)
+# XML HELPERS
 # =========================================================================
 
 
-def _parse_object_xml(path: Path) -> dict:
-    """Parse a single object XML file into a dict with nested structures."""
-    tree = ET.parse(path)
-    obj = tree.getroot()
+def _validate_xml(paths: list[Path]) -> None:
+    """Check that all XML files are well-formed. Raises ValueError listing every bad file."""
+    errors = []
+    for p in paths:
+        try:
+            ET.parse(p)
+        except ET.ParseError as e:
+            errors.append(f"  {p.name}: {e}")
+    if errors:
+        raise ValueError(
+            f"Malformed XML ({len(errors)} file(s)):\n" + "\n".join(errors)
+        )
 
-    record: dict = {
-        "object_id": obj.get("id"),
-        "title": _text(obj, "title"),
-        "date_made": _int_or_none(obj, "date_made"),
-        "credit_line": _text(obj, "credit_line"),
-        "department": _text(obj, "department"),
-    }
 
-    record["constituents"] = [
-        {
-            "name": _text(c, "name"),
-            "role": c.get("role"),
-            "birth_year": _int_or_none(c, "birth_year"),
-            "nationality_id": _text(c, "nationality_id"),
+def _clean_xmltodict(obj: object) -> object:
+    """Recursively strip @ from keys, rename #text → text, auto-cast numeric strings."""
+    if isinstance(obj, dict):
+        return {
+            ("text" if k == "#text" else k.lstrip("@")): _clean_xmltodict(v)
+            for k, v in obj.items()
         }
-        for c in obj.findall(".//constituent")
-    ]
-
-    record["classification_ids"] = [
-        {"type_id": c.get("type_id"), "term_id": c.get("term_id")}
-        for c in obj.findall(".//classification")
-    ]
-
-    record["dimensions"] = [
-        {
-            "type": d.get("type"),
-            "value": float(d.get("value", 0)),
-            "unit": d.get("unit"),
-        }
-        for d in obj.findall(".//dimension")
-    ]
-
-    record["media"] = [
-        {
-            "type": img.get("type"),
-            "url": _text(img, "url"),
-            "caption": _text(img, "caption"),
-        }
-        for img in obj.findall(".//image")
-    ]
-
-    return record
+    if isinstance(obj, list):
+        return [_clean_xmltodict(i) for i in obj]
+    if isinstance(obj, str):
+        try:
+            return int(obj)
+        except ValueError:
+            try:
+                return float(obj)
+            except ValueError:
+                return obj
+    return obj
 
 
-def _text(el: ET.Element, tag: str) -> str | None:
-    child = el.find(tag)
-    return child.text.strip() if child is not None and child.text else None
-
-
-def _int_or_none(el: ET.Element, tag: str) -> int | None:
-    val = _text(el, tag)
-    return int(val) if val else None
+def _unwrap_list(parent: dict | None, child_key: str) -> list:
+    """Unwrap xmltodict nesting: {child_key: [...]} → [...]"""
+    if parent is None:
+        return []
+    return parent.get(child_key, [])
 
 
 # =========================================================================
