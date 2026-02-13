@@ -48,9 +48,9 @@ def harvest_terminology() -> pl.DataFrame:
     _validate_xml([term_path])
 
     with open(term_path) as f:
-        raw = _clean_xmltodict(xmltodict.parse(f.read(), force_list=("term",)))
+        record = _harvest_xml_record(f.read(), root="terminology")
 
-    return pl.DataFrame(raw["terminology"]["term"]).rename(
+    return pl.DataFrame(record["term"]).rename(
         {"id": "term_id", "type": "term_type", "text": "label"}
     )
 
@@ -69,21 +69,7 @@ def harvest_objects() -> pl.DataFrame:
     records = []
     for p in paths:
         with open(p) as f:
-            obj = _clean_xmltodict(
-                xmltodict.parse(
-                    f.read(),
-                    force_list=("constituent", "classification", "dimension", "image"),
-                )
-            )["object"]
-
-        obj["object_id"] = obj.pop("id")
-        obj["constituents"] = _unwrap_list(obj.pop("constituents", None), "constituent")
-        obj["classification_ids"] = _unwrap_list(
-            obj.pop("classifications", None), "classification"
-        )
-        obj["dimensions"] = _unwrap_list(obj.pop("dimensions", None), "dimension")
-        obj["media"] = _unwrap_list(obj.pop("media", None), "image")
-        records.append(obj)
+            records.append(_harvest_xml_record(f.read(), root="object"))
 
     return pl.DataFrame(records)
 
@@ -109,6 +95,12 @@ def objects_transform(
     """
     terminology = harvest_terminology.lazy()
     objects = harvest_objects.lazy()
+
+    # --- Normalize column names across source formats (XML vs JSON) ---
+    col_renames = {"id": "object_id", "classifications": "classification_ids"}
+    objects = objects.rename(
+        {old: new for old, new in col_renames.items() if old in harvest_objects.columns}
+    )
 
     # --- Enrich classifications: explode → join → re-nest ---
     type_labels = terminology.select(
@@ -247,6 +239,68 @@ def _validate_xml(paths: list[Path]) -> None:
         )
 
 
+def _harvest_xml_record(xml_text: str, root: str) -> dict:  # type: ignore[type-arg]
+    """Parse a single XML document into a clean dict with auto-unwrapped lists.
+
+    Handles the full xmltodict cleanup pipeline:
+    1. Parse with force_list=True so every element is a list
+    2. Strip @ prefixes, rename #text → text, auto-cast numbers
+    3. Auto-unwrap wrapper elements (e.g. {constituents: {constituent: [...]}} → {constituents: [...]})
+    4. Collapse single-element lists for scalar fields (e.g. ["text"] → "text")
+    """
+    raw: dict = xmltodict.parse(xml_text, force_list=True)  # type: ignore[assignment]
+    cleaned: dict = _clean_xmltodict(raw)  # type: ignore[assignment]
+    # force_list wraps root in a list too — unwrap it
+    record = cleaned[root]
+    if isinstance(record, list) and len(record) == 1:
+        record = record[0]
+    result = _auto_unwrap(record)
+    assert isinstance(result, dict)
+    return result
+
+
+def _auto_unwrap(obj: object) -> object:
+    """Recursively unwrap xmltodict's wrapper patterns.
+
+    - Single-key dicts whose value is a list → just the list
+      ({constituent: [{...}, {...}]} → [{...}, {...}])
+    - Single-element lists containing a scalar → the scalar
+      (["hello"] → "hello", [42] → 42)
+    - None / empty string from empty elements → [] for wrapper positions
+    """
+    if isinstance(obj, dict):
+        cleaned = {}
+        for k, v in obj.items():
+            v = _auto_unwrap(v)
+            # Unwrap wrapper elements: if value is a dict with a single key
+            # whose value is a list, it's the xmltodict wrapper pattern
+            if isinstance(v, dict) and len(v) == 1:
+                inner_val = next(iter(v.values()))
+                if isinstance(inner_val, list):
+                    v = inner_val
+            # Empty elements (e.g. <constituents/>) parsed as None
+            if v is None:
+                v = []
+            cleaned[k] = v
+        return cleaned
+    if isinstance(obj, list):
+        unwrapped = [_auto_unwrap(i) for i in obj]
+        if len(unwrapped) == 1:
+            item = unwrapped[0]
+            # Collapse wrapper: [{"child_key": [...]}] → [...]
+            # This is the xmltodict pattern where force_list wraps a parent
+            # element that itself contains a single repeating child element.
+            if isinstance(item, dict) and len(item) == 1:
+                inner_val = next(iter(item.values()))
+                if isinstance(inner_val, list):
+                    return inner_val
+            # Collapse scalar: ["hello"] → "hello"
+            if not isinstance(item, (dict, list)):
+                return item
+        return unwrapped
+    return obj
+
+
 def _clean_xmltodict(obj: object) -> object:
     """Recursively strip @ from keys, rename #text → text, auto-cast numeric strings."""
     if isinstance(obj, dict):
@@ -265,13 +319,6 @@ def _clean_xmltodict(obj: object) -> object:
             except ValueError:
                 return obj
     return obj
-
-
-def _unwrap_list(parent: dict | None, child_key: str) -> list:
-    """Unwrap xmltodict nesting: {child_key: [...]} → [...]"""
-    if parent is None:
-        return []
-    return parent.get(child_key, [])
 
 
 # =========================================================================
